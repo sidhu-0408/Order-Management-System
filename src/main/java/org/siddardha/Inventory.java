@@ -18,13 +18,13 @@ public class Inventory {
         return stock.getOrDefault(productId,0);
     }
 
-    public void deductStock(Integer productID, Integer quantity) {
+    public void deductStock(Integer productID, Integer quantity) throws InsufficientStockException{
         if(quantity <= 0)
             throw new IllegalArgumentException("quantity should be greater than 0");
 
         Integer available = stock.getOrDefault(productID,0);
         if(available < quantity)
-            throw new IllegalArgumentException("Current stock is less");
+            throw new InsufficientStockException("Current stock is less");
 
         stock.put(productID, available - quantity);
     }

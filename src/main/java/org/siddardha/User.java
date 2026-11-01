@@ -3,6 +3,7 @@ package org.siddardha;
 import java.util.Objects;
 
 public class User {
+    private static int nextId = 1;
 
     private int id;
     private String name;
@@ -16,6 +17,7 @@ public class User {
         if (passwordHash == null || passwordHash.isBlank()) {
             throw new IllegalArgumentException("Password hash should not be blank");
         }
+        this.id = nextId++;
         this.name = name;
         this.email = email;
         this.passwordHash = passwordHash;

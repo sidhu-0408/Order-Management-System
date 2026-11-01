@@ -1,7 +1,6 @@
 package org.siddardha;
 
 import java.math.BigDecimal;
-import org.apache.commons.lang3.StringUtils;
 
 public class Product {
 

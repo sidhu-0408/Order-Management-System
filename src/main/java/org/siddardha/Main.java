@@ -1,7 +1,9 @@
 package org.siddardha;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
@@ -57,6 +59,64 @@ public class Main {
         pen.deactivate();
         System.out.println("pen active after : " + pen.isActive());
         // pen.setId(99);        // uncomment: it should NOT compile
+
+        // 5. Day 4: placing orders
+        // Fresh products, because 'pen' above was deactivated.
+        System.out.println("\n=== 5. Placing orders ===");
+        Product ballPen = new Product("Ball Pen", new BigDecimal("10.50"));
+        Product diary = new Product("Diary", new BigDecimal("45.00"));
+
+        Inventory inventory = new Inventory();
+        inventory.addStock(ballPen.getId(), 10);
+        inventory.addStock(diary.getId(), 5);
+
+        Map<Integer, Product> catalog = new HashMap<>();
+        catalog.put(ballPen.getId(), ballPen);
+        catalog.put(diary.getId(), diary);
+        OrderService orderService = new OrderService(inventory, catalog);
+
+        // Check 1: valid order -> total 66.00 (2 x 10.50 + 1 x 45.00), ball pen stock 10 -> 8
+        Order order = null;
+        try {
+            order = orderService.placeOrder(1, Map.of(ballPen.getId(), 2, diary.getId(), 1));
+            System.out.println("OK, order placed: " + order);
+            System.out.println("   total = " + order.getTotal() + " (expect 66.00)");
+            System.out.println("   ball pen stock = " + inventory.getStock(ballPen.getId()) + " (expect 8)");
+            System.out.println("   diary stock    = " + inventory.getStock(diary.getId()) + " (expect 4)");
+        } catch (InsufficientStockException e) {
+            System.out.println("FAIL: valid order was rejected: " + e.getMessage());
+        }
+
+        // Check 2: not enough stock -> InsufficientStockException, and NO stock changes (all-or-nothing)
+        System.out.println("\n=== 6. Not enough stock ===");
+        try {
+            orderService.placeOrder(1, Map.of(ballPen.getId(), 1, diary.getId(), 100));
+            System.out.println("FAIL: order for 100 diaries was accepted");
+        } catch (InsufficientStockException e) {
+            System.out.println("OK, rejected: " + e.getMessage());
+        }
+        System.out.println("   ball pen stock = " + inventory.getStock(ballPen.getId()) + " (expect 8, unchanged)");
+        System.out.println("   diary stock    = " + inventory.getStock(diary.getId()) + " (expect 4, unchanged)");
+
+        // Check 3 and 4 need the order from check 1
+        if (order != null) {
+            // Check 3: valid transitions CREATED -> PAID -> PROCESSING
+            System.out.println("\n=== 7. Valid status changes ===");
+            order.changeStatus(OrderStatus.PAID);
+            System.out.println("OK, status = " + order.getStatus() + " (expect PAID)");
+            order.changeStatus(OrderStatus.PROCESSING);
+            System.out.println("OK, status = " + order.getStatus() + " (expect PROCESSING)");
+
+            // Check 4: invalid transition PROCESSING -> CANCELLED -> InvalidTransitionException
+            System.out.println("\n=== 8. Invalid status change ===");
+            try {
+                order.changeStatus(OrderStatus.CANCELLED);
+                System.out.println("FAIL: cancelled an order that is already PROCESSING");
+            } catch (InvalidTransitionException e) {
+                System.out.println("OK, rejected: " + e.getMessage());
+            }
+            System.out.println("   status = " + order.getStatus() + " (expect PROCESSING, unchanged)");
+        }
     }
 
     // Runs the given action and reports whether it was rejected with IllegalArgumentException.
