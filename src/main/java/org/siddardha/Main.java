@@ -1,10 +1,7 @@
 package org.siddardha;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
@@ -117,6 +114,46 @@ public class Main {
             }
             System.out.println("   status = " + order.getStatus() + " (expect PROCESSING, unchanged)");
         }
+
+        // 9. Day 5: streams - revenue per product
+        // Order #1 above is PROCESSING (counts). Add one unpaid and one cancelled order (must NOT count).
+        System.out.println("\n=== 9. Revenue per product ===");
+        try {
+            Order unpaid = orderService.placeOrder(2, Map.of(ballPen.getId(), 1));   // stays CREATED
+            Order cancelled = orderService.placeOrder(3, Map.of(diary.getId(), 1));
+            cancelled.changeStatus(OrderStatus.CANCELLED);
+            System.out.println("unpaid order    : " + unpaid);
+            System.out.println("cancelled order : " + cancelled);
+        } catch (InsufficientStockException e) {
+            System.out.println("FAIL: setup order was rejected: " + e.getMessage());
+        }
+
+        Map<Integer, BigDecimal> revenue = orderService.revenueByProduct();
+        System.out.println("revenue map = " + revenue);
+        System.out.println("   Ball Pen revenue = " + revenue.get(ballPen.getId()) + " (expect 21.00)");
+        System.out.println("   Diary revenue    = " + revenue.get(diary.getId()) + " (expect 45.00)");
+        System.out.println("   products in map  = " + revenue.size() + " (expect 2)");
+
+        // 10. Day 5: streams - grouping, counting, Optional
+        System.out.println("\n=== 10. Orders by status ===");
+        Map<OrderStatus, List<Order>> byStatus = orderService.ordersByStatus();
+        byStatus.forEach((status, list) -> System.out.println("   " + status + " -> order ids "
+                + list.stream().map(Order::getId).toList()));
+        System.out.println("   (expect CREATED -> [2], PROCESSING -> [1], CANCELLED -> [3], in that order)");
+
+        Map<OrderStatus, Long> counts = orderService.countByStatus();
+        System.out.println("count by status = " + counts
+                + " (expect {CREATED=1, PROCESSING=1, CANCELLED=1})");
+        System.out.println("   PAID present? " + counts.containsKey(OrderStatus.PAID)
+                + " (expect false: groupingBy only creates keys that have orders)");
+
+        System.out.println("\n=== 11. findById ===");
+        Optional<Order> found = orderService.findById(1);
+        System.out.println("findById(1)   = " + found.map(Order::toString).orElse("empty")
+                + " (expect id=1, status=PROCESSING)");
+        Optional<Order> missing = orderService.findById(999);
+        System.out.println("findById(999) = " + (missing.isPresent() ? "FAIL: " + missing.get() : "empty")
+                + " (expect empty)");
     }
 
     // Runs the given action and reports whether it was rejected with IllegalArgumentException.

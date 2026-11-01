@@ -1,13 +1,15 @@
 package org.siddardha;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.util.*;
+
+import static java.util.stream.Collectors.*;
 
 public class OrderService {
 
     private final Inventory inventory;
     private final Map<Integer, Product> products;
+    private final List<Order> orders = new ArrayList<>();
 
     public OrderService(Inventory inventory, Map<Integer, Product> products) {
         this.inventory = inventory;
@@ -62,6 +64,30 @@ public class OrderService {
         }
 
         // 3. Create the order (starts as CREATED).
-        return new Order(userId, items);
+        Order order = new Order(userId, items);
+        orders.add(order);
+        return order;
+    }
+
+    public Map<Integer, BigDecimal> revenueByProduct() {
+        return orders.stream().filter(order -> order.getStatus() != OrderStatus.CREATED && order.getStatus() != OrderStatus.CANCELLED)
+                .flatMap(order -> order.getItems().stream())
+                .collect(groupingBy(OrderItem::productId, reducing(BigDecimal.ZERO, OrderItem::subTotal, BigDecimal::add)));
+    }
+
+    public Map<OrderStatus, List<Order>> ordersByStatus() {
+        return orders.stream().collect(groupingBy(Order::getStatus,() -> new EnumMap<>(OrderStatus.class), toList()));
+    }
+
+    public Map<OrderStatus, Long> countByStatus() {
+        return orders.stream().collect(groupingBy(Order::getStatus, () -> new EnumMap<>(OrderStatus.class), counting()));
+    }
+
+    public Optional<Order> findById(int id) {
+        return orders.stream().filter(order -> order.getId() == id).findFirst();
+    }
+
+    public List<Order> getOrders() {
+        return List.copyOf(orders);
     }
 }
