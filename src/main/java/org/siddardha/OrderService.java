@@ -90,4 +90,33 @@ public class OrderService {
     public List<Order> getOrders() {
         return List.copyOf(orders);
     }
+
+    /**
+     * Pays for an order with ANY Payment implementation (card, UPI, or one added later).
+     * OrderService only knows the Payment interface - that is what makes payment "pluggable"
+     * (Dependency Inversion + Open/Closed: a new method needs a new class, not an edit here).
+     *
+     * @return the PaymentResult; on SUCCESS the order moves to PAID, on FAILED it stays CREATED
+     * @throws IllegalArgumentException   if the order doesn't exist or payment is null
+     * @throws InvalidTransitionException if the order can't be paid (e.g. already PAID or CANCELLED)
+     */
+    public PaymentResult pay(int orderId, Payment payment) {
+        if (payment == null) {
+            throw new IllegalArgumentException("Payment method required");
+        }
+        Order order = findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order " + orderId + " not found"));
+
+        // Check BEFORE charging: never take money for an order we can't move to PAID.
+        if (!order.getStatus().canTransitionTo(OrderStatus.PAID)) {
+            throw new InvalidTransitionException(
+                    "Order " + orderId + " cannot be paid in status " + order.getStatus());
+        }
+
+        PaymentResult result = payment.processPayment(order.getTotal());
+        if (result.status() == PaymentStatus.SUCCESS) {
+            order.changeStatus(OrderStatus.PAID);
+        }
+        return result;
+    }
 }

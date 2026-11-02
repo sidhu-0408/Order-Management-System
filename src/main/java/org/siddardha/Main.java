@@ -154,6 +154,60 @@ public class Main {
         Optional<Order> missing = orderService.findById(999);
         System.out.println("findById(999) = " + (missing.isPresent() ? "FAIL: " + missing.get() : "empty")
                 + " (expect empty)");
+
+        // 12. Day 6: pluggable payment - OrderService.pay() only knows the Payment interface
+        System.out.println("\n=== 12. Paying orders ===");
+        Payment upi = new UpiPayment("asha@okbank");
+        Payment goodCard = new CardPayment("4111111111111111");
+        Payment declinedCard = new CardPayment("4111111111110000");   // ends in 0000 -> declined
+
+        // Order #2 is CREATED (unpaid) -> pay by UPI
+        PaymentResult upiResult = orderService.pay(2, upi);
+        System.out.println("order 2 by UPI : " + upiResult.status() + " -> status "
+                + orderService.findById(2).map(Order::getStatus).orElse(null) + " (expect SUCCESS -> PAID)");
+
+        try {
+            Order order4 = orderService.placeOrder(4, Map.of(ballPen.getId(), 1));
+            // Declined card: order must stay CREATED
+            PaymentResult declined = orderService.pay(order4.getId(), declinedCard);
+            System.out.println("order 4 by declined card : " + declined.status() + " -> status "
+                    + order4.getStatus() + " (expect FAILED -> CREATED)");
+            // Retry with a good card
+            PaymentResult retry = orderService.pay(order4.getId(), goodCard);
+            System.out.println("order 4 retry, good card : " + retry.status() + " -> status "
+                    + order4.getStatus() + " (expect SUCCESS -> PAID)");
+            System.out.println("   amount charged = " + retry.amount() + " (expect 10.50)");
+        } catch (InsufficientStockException e) {
+            System.out.println("FAIL: setup order was rejected: " + e.getMessage());
+        }
+
+        // Paying an order that is already PROCESSING / CANCELLED must be rejected BEFORE charging
+        expectInvalidTransition("pay PROCESSING order 1", () -> orderService.pay(1, goodCard));
+        expectInvalidTransition("pay CANCELLED order 3", () -> orderService.pay(3, upi));
+        expectRejected("pay unknown order 999", () -> orderService.pay(999, upi));
+
+        // A brand-new payment type, written as a lambda: OrderService needed NO change (Open/Closed)
+        Payment freeVoucher = amount -> new PaymentResult("VOUCHER-1", PaymentMethod.UPI,
+                PaymentStatus.SUCCESS, amount, java.time.Instant.now(), "paid by voucher");
+        try {
+            Order order5 = orderService.placeOrder(5, Map.of(diary.getId(), 1));
+            orderService.pay(order5.getId(), freeVoucher);
+            System.out.println("order 5 by voucher lambda -> status " + order5.getStatus() + " (expect PAID)");
+        } catch (InsufficientStockException e) {
+            System.out.println("FAIL: setup order was rejected: " + e.getMessage());
+        }
+
+        System.out.println("revenue now = " + orderService.revenueByProduct()
+                + " (expect Ball Pen 21.00+10.50+10.50 = 42.00, Diary 45.00+45.00 = 90.00)");
+    }
+
+    private static void expectInvalidTransition(String label, Runnable action) {
+        try {
+            action.run();
+            System.out.println("FAIL: " + label + " was accepted");
+        } catch (InvalidTransitionException e) {
+            System.out.println("OK, rejected (" + label + "): " + e.getMessage());
+        }
     }
 
     // Runs the given action and reports whether it was rejected with IllegalArgumentException.

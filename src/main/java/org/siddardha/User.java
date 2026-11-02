@@ -11,6 +11,9 @@ public class User {
     private String passwordHash;
 
     public User(String name, String email, String passwordHash) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Name should not be blank");
+        }
         if(email == null ||!email.contains("@")) {
             throw new IllegalArgumentException("Invalid Email");
         }
@@ -18,8 +21,8 @@ public class User {
             throw new IllegalArgumentException("Password hash should not be blank");
         }
         this.id = nextId++;
-        this.name = name;
-        this.email = email;
+        this.name = name.trim();
+        this.email = email.trim().toLowerCase();   // normalised, so "MEENA@x.com" and "meena@x.com" are the same user
         this.passwordHash = passwordHash;
     }
 
@@ -27,12 +30,14 @@ public class User {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
-        return Objects.equals(name, user.name) && Objects.equals(email, user.email);
+        // Email is the user's identity; the name can change and doesn't make it a different user.
+        return Objects.equals(email, user.email);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, email);
+        // Must use the same fields as equals(), otherwise HashSet/HashMap break.
+        return Objects.hash(email);
     }
 
     @Override
