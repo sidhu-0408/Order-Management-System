@@ -5,7 +5,7 @@ import java.util.*;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main {
+public class ConsoleDemo {
     public static void main(String[] args) {
         // 1. Valid objects
         System.out.println("=== 1. Valid objects ===");
