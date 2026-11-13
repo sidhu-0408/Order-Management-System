@@ -1,25 +1,26 @@
 package org.siddardha;
 
+import jakarta.persistence.*;
+
 import java.math.BigDecimal;
 
+@Entity
+@Table(name  = "products")
 public class Product {
 
-    private static int nextId = 1;
-
-    private final int id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     private String name;
     private String description;
     private BigDecimal price;
     private String category;
     private boolean active = true;
 
-    public Product (String name, BigDecimal price) {
-        this.id = nextId++;
-        this.name = validateName(name);
-        this.price = validatePrice(price);
+    public Product () {
     }
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 

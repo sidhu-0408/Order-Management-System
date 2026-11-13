@@ -1,29 +1,21 @@
 package org.siddardha;
 
+import jakarta.persistence.*;
+
 import java.util.Objects;
 
+@Entity
+@Table(name = "users")
 public class User {
-    private static int nextId = 1;
 
-    private int id;
-    private String name;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String full_name;
     private String email;
     private String passwordHash;
 
-    public User(String name, String email, String passwordHash) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Name should not be blank");
-        }
-        if(email == null ||!email.contains("@")) {
-            throw new IllegalArgumentException("Invalid Email");
-        }
-        if (passwordHash == null || passwordHash.isBlank()) {
-            throw new IllegalArgumentException("Password hash should not be blank");
-        }
-        this.id = nextId++;
-        this.name = name.trim();
-        this.email = email.trim().toLowerCase();   // normalised, so "MEENA@x.com" and "meena@x.com" are the same user
-        this.passwordHash = passwordHash;
+    public User() {
     }
 
     @Override
@@ -42,6 +34,6 @@ public class User {
 
     @Override
     public String toString() {
-        return "User{id=" + id + ", name='" + name + "', email='" + email + "'}";
+        return "User{id=" + id + ", name='" + full_name + "', email='" + email + "'}";
     }
 }
